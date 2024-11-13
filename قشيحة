@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تكلم مع قشيحة</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0e6ff;
+            font-family: Arial, sans-serif;
+            margin: 0;
+        }
+        .messenger-container {
+            width: 100%;
+            max-width: 400px;
+            height: 600px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .header {
+            background-color: #8e44ad;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+        .chat-box {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background-color: #f9f3ff;
+        }
+        .message {
+            background-color: #e1d8f9;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 70%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0;
+            animation: fadeIn 0.5s forwards;
+            position: relative;
+            cursor: pointer;
+        }
+        .message.sent {
+            align-self: flex-end;
+            background-color: #dcd4ef;
+        }
+        .message.received {
+            align-self: flex-start;
+            background-color: #f3e7ff;
+        }
+        .message img {
+            max-width: 100px;
+            border-radius: 5px;
+        }
+        .delete-btn, .emoji-btn {
+            display: none;
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 2px 5px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .emoji-btn {
+            background-color: transparent;
+            font-size: 20px;
+            color: #8e44ad;
+            top: 5px;
+            right: 35px;
+        }
+        .emoji-options {
+            display: none;
+            position: absolute;
+            top: 35px;
+            right: 5px;
+            background-color: white;
+            padding: 5px;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .emoji-options span {
+            font-size: 20px;
+            cursor: pointer;
+            padding: 5px;
+        }
+        .emoji-options span:hover {
+            background-color: #ddd;
+            border-radius: 5px;
+        }
+        .message.active .delete-btn, .message.active .emoji-btn, .message.active .emoji-options {
+            display: block;
+        }
+        .input-container {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+            background-color: #f0e6ff;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .input-container input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            outline: none;
+            margin-right: 10px;
+            background-color: #f9f9f9;
+        }
+        .input-container button {
+            padding: 10px 15px;
+            background-color: #8e44ad;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .input-container button:hover {
+            background-color: #732d91;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="messenger-container">
+        <div class="header">تكلم مع قشيحة</div>
+        <div class="chat-box" id="chatBox">
+            <!-- الرسائل ستظهر هنا -->
+        </div>
+        <div class="input-container">
+            <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="sendImage()">
+            <button onclick="document.getElementById('imageInput').click()">📷</button>
+            <input type="text" id="messageInput" placeholder="اكتب رسالة..." onkeydown="handleKeyDown(event)">
+            <button onclick="sendMessage()">إرسال</button>
+        </div>
+    </div>
+
+    <script>
+        const emojis = ["😊", "😂", "😍", "👍", "🎉"];
+        const shortcuts = {
+            "السلام": "وعليكم السلام، كيف يمكنني مساعدتك؟",
+            "كيف حالك": "أنا بخير، شكراً لسؤالك! 😊",
+            "مساعدة": "بالطبع! كيف يمكنني مساعدتك اليوم؟",
+            "شكراً": "على الرحب والسعة! 😄",
+            "مشكور": "لا شكر على واجب! 🌟",
+            "صور": "إرسل لي صورة وأنا سأرد عليك! 📷"
+        };
+
+        function sendMessage() {
+            const messageInput = document.getElementById("messageInput");
+            const chatBox = document.getElementById("chatBox");
+            let messageText = messageInput.value.trim();
+
+            if (messageText === "") return;
+
+            if (shortcuts[messageText]) {
+                messageText = shortcuts[messageText];
+            }
+
+            const messageElement = createMessageElement(messageText, 'sent');
+            chatBox.appendChild(messageElement);
+
+            messageInput.value = "";
+            messageInput.focus();
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            setTimeout(() => {
+                const replyElement = createMessageElement("مرحباً! كيف يمكنني مساعدتك؟ 😊", 'received');
+                chatBox.appendChild(replyElement);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }, 1000);
+        }
+
+        function sendImage() {
+            const imageInput = document.getElementById("imageInput");
+            const chatBox = document.getElementById("chatBox");
+
+            if (imageInput.files && imageInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imageElement = createMessageElement('', 'sent');
+                    const img = document.createElement("img");
+                    img.src = e.target.result;
+                    imageElement.appendChild(img);
+                    chatBox.appendChild(imageElement);
+                    chatBox.scrollTop = chatBox.scrollHeight;
+
+                    setTimeout(() => {
+                        const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+                        const replyElement = createMessageElement(randomEmoji, 'received');
+                        chatBox.appendChild(replyElement);
+                        chatBox.scrollTop = chatBox.scrollHeight;
+                    }, 1000);
+                };
+                reader.readAsDataURL(imageInput.files[0]);
+            }
+        }
+
+        function createMessageElement(text, type) {
+            const messageElement = document.createElement("div");
+            messageElement.classList.add("message", type);
+
+            if (text) {
+                messageElement.innerText = text;
+            }
+
+            const deleteBtn = document.createElement("button");
+            deleteBtn.classList.add("delete-btn");
+            deleteBtn.innerText = "حذف";
+            deleteBtn.onclick = () => deleteMessage(messageElement);
+            messageElement.appendChild(deleteBtn);
+
+            const emojiBtn = document.createElement("span");
+            emojiBtn.classList.add("emoji-btn");
+            emojiBtn.innerHTML = "😊";
+            emojiBtn.onclick = () => toggleEmojiOptions(messageElement);
+            messageElement.appendChild(emojiBtn);
+
+            messageElement.onclick = () => {
+                messageElement.classList.toggle("active");
+            };
+
+            return messageElement;
+        }
+
+        function toggleEmojiOptions(messageElement) {
+            const emojiOptions = document.createElement("div");
+            emojiOptions.classList.add("emoji-options");
+
+            emojis.forEach(emoji => {
+                const span = document.createElement("span");
+                span.innerHTML = emoji;
+                span.onclick = () => {
+                    messageElement.innerText += emoji;
+                    messageElement.classList.remove("active");
+                    emojiOptions.remove();
+                };
+                emojiOptions.appendChild(span);
+            });
+
+            messageElement.appendChild(emojiOptions);
+            emojiOptions.style.display = "block";
+        }
+
+        function deleteMessage(messageElement) {
+            messageElement.remove();
+        }
+
+        function handleKeyDown(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        }
+    </script>
+
+</body>
+</html>
